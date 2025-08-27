@@ -3,3 +3,5 @@ google-generativeai
 python-dotenv
 Pillow
 requests
+pandas
+matplotlib
