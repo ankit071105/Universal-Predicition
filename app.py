@@ -5,9 +5,6 @@ import os
 from dotenv import load_dotenv
 import io
 import requests
-from typing import Dict, Any
-import cv2
-import numpy as np
 
 # Load environment variables
 load_dotenv()
@@ -124,7 +121,8 @@ def main():
                     
                     # Extract subject for more facts
                     if "**Object/Subject:**" in response:
-                        subject = response.split("**Object/Subject:**")[1].split("**Type/Category:**")[0].strip()
+                        subject_line = response.split("**Object/Subject:**")[1].split("\n")[0].strip()
+                        subject = subject_line.split("[")[1].split("]")[0] if "[" in subject_line else subject_line
                         st.subheader(f"More About {subject}")
                         facts = get_detailed_facts(subject)
                         st.markdown(facts)
@@ -156,7 +154,8 @@ def main():
                         
                         # Extract subject for more facts
                         if "**Object/Subject:**" in response:
-                            subject = response.split("**Object/Subject:**")[1].split("**Type/Category:**")[0].strip()
+                            subject_line = response.split("**Object/Subject:**")[1].split("\n")[0].strip()
+                            subject = subject_line.split("[")[1].split("]")[0] if "[" in subject_line else subject_line
                             st.subheader(f"More About {subject}")
                             facts = get_detailed_facts(subject)
                             st.markdown(facts)
@@ -172,7 +171,7 @@ def main():
         sample_images = {
             "Cat": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Cat_November_2010-1a.jpg/800px-Cat_November_2010-1a.jpg",
             "Dog": "https://imgs.search.brave.com/8UIgd2rGu-w5WNHs1LSAieexcDqKt4liuafSLSDQwHk/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWFn/ZXMuZnJlZWltYWdl/cy5jb20vaW1hZ2Vz/L2xhcmdlLXByZXZp/ZXdzL2NlNy9oYXBw/eS1ibGFjay1kb2ct/MDQxMC01NzAxNTc5/LmpwZz9mbXQ",
-            "Bird": "https://imgs.search.brave.com/Pgcb9_lcz5h2RJHmkh0swRhKkdKQsfqRGeYICMzK1qg/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5nZXR0eWltYWdl/cy5jb20vaWQvNDgy/NTMwMTE5L3Bob3Rv/L29wZXJhLWJpcmQt/MS5qcGc_cz02MTJ4/NjEyJnc9MCZrPTIw/JmM9Q2E1bi0wOEZO/OW9YZExrM1Vza2lx/ZmpnbXZiXzQ2RHU0/ZlJZQkRGR3UyUT0",
+            "Bird": "https://imgs.search.brave.com/Pgcb9_lcz5h2RJHmkh0swRhKkdKQsfqRGeYICMzK1qg/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5nZXR0eWltYWdl/cy5jb20vaWQvNDgy/NTMwMTE5L3Bob3Rv/L29wZXJhLWJpcmQt/MS5jcGc_cz02MTJ4/NjEyJnc9MCZrPTIw/JmM9Q2E1bi0wOEZO/OW9YZExrM1Vza2lx/ZmpnbXZiXzQ2RHU0/ZlJZQkRGR3UyUT0",
             "Flower": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Sunflower_sky_backdrop.jpg/800px-Sunflower_sky_backdrop.jpg",
             "Landmark": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Eiffel_Tower_from_the_Champ_de_Mars%2C_Paris_May_2008.jpg/800px-Eiffel_Tower_from_the_Champ_de_Mars%2C_Paris_May_2008.jpg",
             "Food": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Pizza_%281%29.jpg/800px-Pizza_%281%29.jpg"
@@ -182,28 +181,37 @@ def main():
             st.image(sample_images["Cat"], caption="Sample Cat", use_column_width=True)
             if st.button("Identify Cat", key="cat_btn"):
                 with st.spinner("Analyzing..."):
-                    response = requests.get(sample_images["Cat"])
-                    img = Image.open(io.BytesIO(response.content))
-                    result = identify_object(img)
-                    st.markdown(result)
+                    try:
+                        response = requests.get(sample_images["Cat"])
+                        img = Image.open(io.BytesIO(response.content))
+                        result = identify_object(img)
+                        st.markdown(result)
+                    except Exception as e:
+                        st.error(f"Error loading sample image: {str(e)}")
         
         with col2:
             st.image(sample_images["Flower"], caption="Sample Flower", use_column_width=True)
             if st.button("Identify Flower", key="flower_btn"):
                 with st.spinner("Analyzing..."):
-                    response = requests.get(sample_images["Flower"])
-                    img = Image.open(io.BytesIO(response.content))
-                    result = identify_object(img)
-                    st.markdown(result)
+                    try:
+                        response = requests.get(sample_images["Flower"])
+                        img = Image.open(io.BytesIO(response.content))
+                        result = identify_object(img)
+                        st.markdown(result)
+                    except Exception as e:
+                        st.error(f"Error loading sample image: {str(e)}")
         
         with col3:
             st.image(sample_images["Landmark"], caption="Sample Landmark", use_column_width=True)
             if st.button("Identify Landmark", key="landmark_btn"):
                 with st.spinner("Analyzing..."):
-                    response = requests.get(sample_images["Landmark"])
-                    img = Image.open(io.BytesIO(response.content))
-                    result = identify_object(img)
-                    st.markdown(result)
+                    try:
+                        response = requests.get(sample_images["Landmark"])
+                        img = Image.open(io.BytesIO(response.content))
+                        result = identify_object(img)
+                        st.markdown(result)
+                    except Exception as e:
+                        st.error(f"Error loading sample image: {str(e)}")
 
 if __name__ == "__main__":
     main()
