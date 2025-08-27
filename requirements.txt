@@ -1,11 +1,11 @@
 streamlit
 tensorflow
 numpy
-Pillow
 scikit-learn
-matplotlib
+onnxruntime
+Pillow
 opencv-python
+matplotlib
 requests
 tqdm
-onnxruntime
 google-generativeai
