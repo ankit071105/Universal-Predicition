@@ -1,10 +1,8 @@
 streamlit
-tensorflow
 numpy
 scikit-learn
 onnxruntime
 Pillow
-opencv-python
 matplotlib
 requests
 tqdm
