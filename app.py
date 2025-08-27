@@ -170,11 +170,11 @@ def main():
         
         sample_images = {
             "Cat": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Cat_November_2010-1a.jpg/800px-Cat_November_2010-1a.jpg",
-            "Dog": "https://imgs.search.brave.com/8UIgd2rGu-w5WNHs1LSAieexcDqKt4liuafSLSDQwHk/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWFn/ZXMuZnJlZWltYWdl/cy5jb20vaW1hZ2Vz/L2xhcmdlLXByZXZp/ZXdzL2NlNy9oYXBw/eS1ibGFjay1kb2ct/MDQxMC01NzAxNTc5/LmpwZz9mbXQ",
-            "Bird": "https://imgs.search.brave.com/Pgcb9_lcz5h2RJHmkh0swRhKkdKQsfqRGeYICMzK1qg/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5nZXR0eWltYWdl/cy5jb20vaWQvNDgy/NTMwMTE5L3Bob3Rv/L29wZXJhLWJpcmQt/MS5jcGc_cz02MTJ4/NjEyJnc9MCZrPTIw/JmM9Q2E1bi0wOEZO/OW9YZExrM1Vza2lx/ZmpnbXZiXzQ2RHU0/ZlJZQkRGR3UyUT0",
+            "Dog": "https://imgs.search.brave.com/nIAhDy4S3al8GEUF3aCDtjqd-pOlC-3HJQMQEnVVnYU/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90NC5m/dGNkbi5uZXQvanBn/LzEyLzkzLzI0LzE5/LzM2MF9GXzEyOTMy/NDE5OTNfcVdPOGpG/bXZPdTU5SWs1eHRn/RkNjUjVOV0x5RUxa/TlAuanBn",
+            "Bird": "https://imgs.search.brave.com/1BHHEEYcR7QSP_EP-rSv6rBgy_cC-iaT8sNnrecB-Y8/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pLnBp/bmltZy5jb20vb3Jp/Z2luYWxzLzljL2Zk/LzRmLzljZmQ0ZmVj/MTRiZmI5YmRlZWYx/MTQ5NDcyMDYzNmVj/LmpwZw",
             "Flower": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Sunflower_sky_backdrop.jpg/800px-Sunflower_sky_backdrop.jpg",
             "Landmark": "https://imgs.search.brave.com/avDkW6NioPcZxp6GjvwHNuA-RiqCg4Fqn2-B40xHsWg/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5pc3RvY2twaG90/by5jb20vaWQvMTM3/MzA0ODUwNi9waG90/by90aGUtYnJvb2ts/eW4tYnJpZGdlLWZy/ZWVkb20tdG93ZXIt/YW5kLWxvd2VyLW1h/bmhhdHRhbi5qcGc_/cz02MTJ4NjEyJnc9/MCZrPTIwJmM9N0RZ/NkUzZXhoeDRHUkhT/aEhqUWJVRTc2TkZt/MnQzTFU5aS1PMlRM/RVo5QT0",
-            "Food": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Pizza_%281%29.jpg/800px-Pizza_%281%29.jpg"
+            "Food": "https://imgs.search.brave.com/7XvvxLdJvXWGerm3bYEUFvh2fqXKW41gYrF3Z8lpEIw/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9tZWRp/YS5nZXR0eWltYWdl/cy5jb20vaWQvMTgy/OTI0MTEwOS9waG90/by9lbmpveWluZy1h/LWJydW5jaC10b2dl/dGhlci5qcGc_cz02/MTJ4NjEyJnc9MCZr/PTIwJmM9OWF3TExS/TUJMZWlZc3JYcmtn/emtvc2NWVV8zUm9W/d2xfSEEtT1Qtc3Jq/UT0"
         }
         
         with col1:
