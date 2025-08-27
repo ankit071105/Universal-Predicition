@@ -2,12 +2,8 @@ import streamlit as st
 import google.generativeai as genai
 from PIL import Image
 import os
-import numpy as np
-import cv2
-from typing import Dict, Any
-import matplotlib.pyplot as plt
-from sklearn.cluster import KMeans
-from collections import Counter
+import io
+import requests
 
 # Configure page
 st.set_page_config(
@@ -21,7 +17,7 @@ def configure_genai():
     # Try to get API key from environment variable or Streamlit secrets
     api_key = None
     try:
-        # Try to get from Streamlit secrets (if deployed on Streamlit Cloud)
+        # Try to get from Streamlit secrets
         if hasattr(st, 'secrets') and 'GEMINI_API_KEY' in st.secrets:
             api_key = st.secrets['GEMINI_API_KEY']
         # Try to get from environment variable
@@ -34,7 +30,7 @@ def configure_genai():
         pass
     
     if not api_key:
-        st.warning("Gemini API key not found. Some features may be limited.")
+        st.warning("Gemini API key not found. Please enter your API key in the sidebar to use all features.")
         return False
     
     try:
@@ -49,7 +45,7 @@ genai_available = configure_genai()
 # Function to get Gemini response
 def get_gemini_response(image, prompt):
     if not genai_available:
-        return "Gemini API not configured. Please check your API key."
+        return "Gemini API not configured. Please check your API key in the sidebar."
     
     try:
         model = genai.GenerativeModel('gemini-1.5-flash')
@@ -86,93 +82,6 @@ def identify_object_gemini(image):
     If the image doesn't contain any recognizable objects, please state that clearly.
     """
     return get_gemini_response(image, prompt)
-
-# Function to detect edges with OpenCV
-def detect_edges_opencv(image):
-    try:
-        # Convert PIL image to OpenCV format
-        open_cv_image = np.array(image.convert('RGB'))
-        open_cv_image = open_cv_image[:, :, ::-1].copy()  # Convert RGB to BGR
-        
-        # Convert to grayscale
-        gray = cv2.cvtColor(open_cv_image, cv2.COLOR_BGR2GRAY)
-        
-        # Detect edges
-        edges = cv2.Canny(gray, 100, 200)
-        
-        # Count edges (simple way to get some info)
-        edge_pixels = np.count_nonzero(edges)
-        total_pixels = edges.size
-        edge_ratio = edge_pixels / total_pixels
-        
-        response = "**OpenCV Edge Detection Analysis:**\n\n"
-        response += f"- Detected {edge_pixels} edge pixels ({edge_ratio*100:.2f}% of image)\n"
-        response += "- High edge density suggests detailed or complex objects\n"
-        response += "- Low edge density suggests smooth surfaces or uniform areas\n"
-        
-        return response, edges
-    except Exception as e:
-        return f"Error with OpenCV detection: {str(e)}", None
-
-# Function to detect dominant colors
-def detect_dominant_colors(image, num_colors=5):
-    try:
-        # Convert image to numpy array
-        img_array = np.array(image)
-        
-        # Reshape the image to be a list of pixels
-        pixels = img_array.reshape(-1, 3)
-        
-        # Use KMeans to find dominant colors
-        kmeans = KMeans(n_clusters=num_colors, n_init=10)
-        kmeans.fit(pixels)
-        
-        # Get the colors and their percentages
-        counts = Counter(kmeans.labels_)
-        total_pixels = len(pixels)
-        
-        # Format response
-        response = "**Dominant Colors Analysis:**\n\n"
-        for i, (color_idx, count) in enumerate(counts.most_common(num_colors)):
-            percentage = (count / total_pixels) * 100
-            color = kmeans.cluster_centers_[color_idx].astype(int)
-            response += f"{i+1}. RGB({color[0]}, {color[1]}, {color[2]}) - {percentage:.2f}%\n"
-        
-        return response
-    except Exception as e:
-        return f"Error in color detection: {str(e)}"
-
-# Function to detect simple color-based object recognition
-def simple_color_recognition(image):
-    try:
-        # Convert image to numpy array
-        img_array = np.array(image)
-        
-        # Calculate average color
-        avg_color = np.mean(img_array, axis=(0, 1)).astype(int)
-        
-        # Simple color-based object recognition
-        response = "**Color-Based Analysis:**\n\n"
-        response += f"- Average color: RGB({avg_color[0]}, {avg_color[1]}, {avg_color[2]})\n"
-        
-        # Simple heuristics based on color
-        if avg_color[1] > avg_color[0] + 20 and avg_color[1] > avg_color[2] + 20:
-            response += "- Dominant green color suggests vegetation/plants\n"
-        elif avg_color[0] > avg_color[1] + 20 and avg_color[0] > avg_color[2] + 20:
-            response += "- Dominant red color might indicate certain fruits, flowers, or objects\n"
-        elif avg_color[2] > avg_color[0] + 20 and avg_color[2] > avg_color[1] + 20:
-            response += "- Dominant blue color suggests sky, water, or blue objects\n"
-        
-        # Brightness analysis
-        brightness = np.mean(img_array)
-        if brightness > 180:
-            response += "- High brightness suggests well-lit scene or light-colored objects\n"
-        elif brightness < 80:
-            response += "- Low brightness suggests dark scene or dark-colored objects\n"
-        
-        return response
-    except Exception as e:
-        return f"Error in color recognition: {str(e)}"
 
 # Function to get detailed facts
 def get_detailed_facts(object_type, specific_name):
@@ -218,6 +127,41 @@ def capture_image():
         return Image.open(picture)
     return None
 
+# Function to get image from URL
+def load_image_from_url(url):
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        return Image.open(io.BytesIO(response.content))
+    except Exception as e:
+        st.error(f"Error loading image from URL: {str(e)}")
+        return None
+
+# Function for simple image analysis (without OpenCV)
+def simple_image_analysis(image):
+    try:
+        # Get basic image information
+        width, height = image.size
+        format = image.format
+        mode = image.mode
+        
+        response = "**Image Analysis:**\n\n"
+        response += f"- Dimensions: {width} x {height} pixels\n"
+        response += f"- Format: {format if format else 'Unknown'}\n"
+        response += f"- Color mode: {mode}\n"
+        
+        # Simple analysis based on image characteristics
+        if width > height:
+            response += "- Landscape orientation\n"
+        elif height > width:
+            response += "- Portrait orientation\n"
+        else:
+            response += "- Square format\n"
+            
+        return response
+    except Exception as e:
+        return f"Error in image analysis: {str(e)}"
+
 # Main app
 def main():
     st.title("🔍 Universal Object Identification System")
@@ -225,18 +169,24 @@ def main():
     
     # Sidebar
     with st.sidebar:
-        st.header("Detection Options")
+        st.header("API Configuration")
         
-        detection_mode = st.selectbox(
-            "Choose detection method:",
-            ("Gemini AI (Detailed Analysis)", "OpenCV Analysis", "All Methods")
-        )
+        # API key input (if not already set)
+        if not genai_available:
+            api_key = st.text_input("Enter your Gemini API Key:", type="password")
+            if api_key:
+                try:
+                    genai.configure(api_key=api_key)
+                    st.success("API key configured successfully!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error configuring API: {str(e)}")
         
         st.header("About")
-        st.write("This tool uses AI and computer vision to identify various objects from images.")
+        st.write("This tool uses Google's Gemini AI to identify various objects from images.")
         
         st.header("Instructions")
-        st.write("1. Choose detection method")
+        st.write("1. Enter your Gemini API key (get it from Google AI Studio)")
         st.write("2. Upload image or use camera")
         st.write("3. View analysis results")
         st.write("4. Explore detailed information")
@@ -246,116 +196,110 @@ def main():
         if genai_available:
             st.success("✓ Gemini API Connected")
         else:
-            st.error("✗ Gemini API Not Available")
-            
-        st.success("✓ OpenCV Available")
-        st.success("✓ Color Analysis Available")
+            st.error("✗ Gemini API Not Configured")
     
     # Input selection
-    input_method = st.radio("Choose input method:", ("Upload Image", "Use Camera"))
+    input_method = st.radio("Choose input method:", ("Upload Image", "Use Camera", "Sample Images"))
     
     image = None
     if input_method == "Upload Image":
         uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
         if uploaded_file is not None:
             image = Image.open(uploaded_file)
-    else:
+    elif input_method == "Use Camera":
         image = capture_image()
+    else:
+        # Sample images
+        sample_options = {
+            "Cat": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Cat_November_2010-1a.jpg/800px-Cat_November_2010-1a.jpg",
+            "Rose": "https://cdn.pixabay.com/photo/2018/02/09/21/46/rose-3142529_1280.jpg",
+            "Car": "https://cdn.pixabay.com/photo/2015/01/19/13/51/car-604019_1280.jpg",
+            "Books": "https://cdn.pixabay.com/photo/2017/07/31/20/53/books-2562355_1280.jpg"
+        }
+        
+        selected_sample = st.selectbox("Choose a sample image:", list(sample_options.keys()))
+        if selected_sample:
+            image = load_image_from_url(sample_options[selected_sample])
     
     if image is not None:
         # Display the image
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            st.image(image, caption="Input Image", use_column_width=True)
+        st.image(image, caption="Input Image", use_column_width=True)
         
-        # Process the image based on selected mode
-        with st.spinner("Analyzing image..."):
-            try:
-                results = {}
-                
-                # Run selected detection methods
-                if detection_mode in ["Gemini AI (Detailed Analysis)", "All Methods"] and genai_available:
-                    with st.expander("Gemini AI Analysis", expanded=True):
-                        gemini_result = identify_object_gemini(image)
+        # Basic image analysis
+        with st.expander("Basic Image Information", expanded=True):
+            basic_info = simple_image_analysis(image)
+            st.markdown(basic_info)
+        
+        # Process the image with Gemini
+        if genai_available:
+            with st.spinner("Analyzing image with Gemini AI..."):
+                try:
+                    # Identify object
+                    gemini_result = identify_object_gemini(image)
+                    
+                    # Display results
+                    st.success("Analysis Complete!")
+                    
+                    # Create tabs for different information sections
+                    tab1, tab2 = st.tabs(["Identification Results", "Detailed Information"])
+                    
+                    with tab1:
+                        st.subheader("Gemini AI Analysis")
                         st.markdown(gemini_result)
-                        results["gemini"] = gemini_result
-                
-                if detection_mode in ["OpenCV Analysis", "All Methods"]:
-                    with st.expander("Computer Vision Analysis", expanded=detection_mode != "All Methods"):
-                        edge_result, edge_image = detect_edges_opencv(image)
-                        st.markdown(edge_result)
-                        
-                        # Show edge detection visualization
-                        if edge_image is not None:
-                            fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
-                            ax1.imshow(np.array(image))
-                            ax1.set_title('Original Image')
-                            ax1.axis('off')
-                            
-                            ax2.imshow(edge_image, cmap='gray')
-                            ax2.set_title('Edge Detection')
-                            ax2.axis('off')
-                            
-                            st.pyplot(fig)
-                        
-                        # Color analysis
-                        color_result = detect_dominant_colors(image)
-                        st.markdown(color_result)
-                        
-                        # Simple color recognition
-                        color_recognition = simple_color_recognition(image)
-                        st.markdown(color_recognition)
-                        
-                        results["opencv"] = edge_result
-                        results["color"] = color_result
-                
-                # Detailed information tab
-                if genai_available and "gemini" in results:
-                    with st.expander("Detailed Information", expanded=True):
+                    
+                    with tab2:
                         # Try to extract object info from Gemini results
                         object_info = ""
                         specific_name = ""
                         
-                        if "gemini" in results and "**Object Type:**" in results["gemini"]:
-                            object_info = results["gemini"]
-                            if "**Specific Identification:**" in results["gemini"]:
-                                specific_name = results["gemini"].split("**Specific Identification:**")[1].split("**Key Characteristics:**")[0].strip()
-                        
-                        if object_info:
-                            st.subheader("Comprehensive Details")
-                            facts = get_detailed_facts("object", specific_name)
+                        if "**Object Type:**" in gemini_result and "**Specific Identification:**" in gemini_result:
+                            object_type = gemini_result.split("**Object Type:**")[1].split("**Specific Identification:**")[0].strip()
+                            specific_name = gemini_result.split("**Specific Identification:**")[1].split("**Key Characteristics:**")[0].strip()
+                            
+                            st.subheader(f"Comprehensive Details about {specific_name}")
+                            facts = get_detailed_facts(object_type, specific_name)
                             st.markdown(facts)
                         else:
                             st.info("Detailed information not available for this object.")
-            
-            except Exception as e:
-                st.error(f"An error occurred: {str(e)}")
-                st.info("Please try again with a different image.")
-
+                
+                except Exception as e:
+                    st.error(f"An error occurred during analysis: {str(e)}")
+                    st.info("Please try again with a different image.")
+        else:
+            st.warning("Please configure your Gemini API key in the sidebar to enable object detection.")
+    
     else:
-        # Show sample images and capabilities
-        st.subheader("Try detecting various objects:")
+        # Show instructions and capabilities
+        st.info("""
+        **How to use this app:**
+        1. Get a free Gemini API key from [Google AI Studio](https://aistudio.google.com/)
+        2. Enter your API key in the sidebar
+        3. Choose an input method (upload, camera, or sample images)
+        4. View the analysis results
         
+        **Detection Capabilities:**
+        - Animals & Pets
+        - Plants & Flowers
+        - Vehicles & Machinery
+        - Household Items
+        - Food & Drinks
+        - And much more!
+        """)
+        
+        # Show sample images
+        st.subheader("Sample Images You Can Try:")
         col1, col2, col3, col4 = st.columns(4)
         
         sample_images = [
-            ("https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Cat_November_2010-1a.jpg/800px-Cat_November_2010-1a.jpg", "Animals"),
-            ("https://cdn.pixabay.com/photo/2018/02/09/21/46/rose-3142529_1280.jpg", "Plants & Flowers"),
-            ("https://cdn.pixabay.com/photo/2015/01/19/13/51/car-604019_1280.jpg", "Vehicles"),
-            ("https://cdn.pixabay.com/photo/2017/07/31/20/53/books-2562355_1280.jpg", "Everyday Objects")
+            ("https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Cat_November_2010-1a.jpg/800px-Cat_November_2010-1a.jpg", "Cat"),
+            ("https://cdn.pixabay.com/photo/2018/02/09/21/46/rose-3142529_1280.jpg", "Rose"),
+            ("https://cdn.pixabay.com/photo/2015/01/19/13/51/car-604019_1280.jpg", "Car"),
+            ("https://cdn.pixabay.com/photo/2017/07/31/20/53/books-2562355_1280.jpg", "Books")
         ]
         
         for col, (url, caption) in zip([col1, col2, col3, col4], sample_images):
             with col:
                 st.image(url, caption=caption, use_column_width=True)
-        
-        # Add information about detection methods
-        st.info("""
-        **Available Detection Methods:**
-        - **Gemini AI**: Detailed analysis and information about objects
-        - **OpenCV**: Edge detection and color analysis
-        - **All Methods**: Combine all approaches for comprehensive analysis
-        """)
 
 if __name__ == "__main__":
     main()
