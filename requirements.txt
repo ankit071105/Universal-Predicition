@@ -3,5 +3,3 @@ google-generativeai
 python-dotenv
 Pillow
 requests
-opencv-python
-numpy
