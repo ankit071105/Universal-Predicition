@@ -5,12 +5,9 @@ import os
 import numpy as np
 import cv2
 from typing import Dict, Any
-import tensorflow as tf
-from tensorflow.keras.applications import imagenet_utils
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 from collections import Counter
-import time
 
 # Configure page
 st.set_page_config(
@@ -48,18 +45,6 @@ def configure_genai():
         return False
 
 genai_available = configure_genai()
-
-# Load TensorFlow model (using MobileNet for demonstration)
-@st.cache_resource
-def load_model():
-    try:
-        model = tf.keras.applications.MobileNetV2(weights='imagenet')
-        return model
-    except Exception as e:
-        st.warning(f"Could not load TensorFlow model: {str(e)}")
-        return None
-
-tf_model = load_model()
 
 # Function to get Gemini response
 def get_gemini_response(image, prompt):
@@ -101,31 +86,6 @@ def identify_object_gemini(image):
     If the image doesn't contain any recognizable objects, please state that clearly.
     """
     return get_gemini_response(image, prompt)
-
-# Function to identify objects with TensorFlow
-def identify_object_tensorflow(image):
-    if tf_model is None:
-        return "TensorFlow model not available."
-    
-    try:
-        # Preprocess the image
-        img = image.resize((224, 224))
-        img_array = tf.keras.preprocessing.image.img_to_array(img)
-        img_array = tf.expand_dims(img_array, 0)
-        img_array = tf.keras.applications.mobilenet_v2.preprocess_input(img_array)
-        
-        # Make prediction
-        predictions = tf_model.predict(img_array)
-        results = imagenet_utils.decode_predictions(predictions.numpy())
-        
-        # Format results
-        response = "**TensorFlow Object Detection Results:**\n\n"
-        for i, (imagenet_id, label, score) in enumerate(results[0]):
-            response += f"{i+1}. {label.replace('_', ' ').title()} ({score*100:.2f}% confidence)\n"
-        
-        return response
-    except Exception as e:
-        return f"Error with TensorFlow detection: {str(e)}"
 
 # Function to detect edges with OpenCV
 def detect_edges_opencv(image):
@@ -182,6 +142,38 @@ def detect_dominant_colors(image, num_colors=5):
     except Exception as e:
         return f"Error in color detection: {str(e)}"
 
+# Function to detect simple color-based object recognition
+def simple_color_recognition(image):
+    try:
+        # Convert image to numpy array
+        img_array = np.array(image)
+        
+        # Calculate average color
+        avg_color = np.mean(img_array, axis=(0, 1)).astype(int)
+        
+        # Simple color-based object recognition
+        response = "**Color-Based Analysis:**\n\n"
+        response += f"- Average color: RGB({avg_color[0]}, {avg_color[1]}, {avg_color[2]})\n"
+        
+        # Simple heuristics based on color
+        if avg_color[1] > avg_color[0] + 20 and avg_color[1] > avg_color[2] + 20:
+            response += "- Dominant green color suggests vegetation/plants\n"
+        elif avg_color[0] > avg_color[1] + 20 and avg_color[0] > avg_color[2] + 20:
+            response += "- Dominant red color might indicate certain fruits, flowers, or objects\n"
+        elif avg_color[2] > avg_color[0] + 20 and avg_color[2] > avg_color[1] + 20:
+            response += "- Dominant blue color suggests sky, water, or blue objects\n"
+        
+        # Brightness analysis
+        brightness = np.mean(img_array)
+        if brightness > 180:
+            response += "- High brightness suggests well-lit scene or light-colored objects\n"
+        elif brightness < 80:
+            response += "- Low brightness suggests dark scene or dark-colored objects\n"
+        
+        return response
+    except Exception as e:
+        return f"Error in color recognition: {str(e)}"
+
 # Function to get detailed facts
 def get_detailed_facts(object_type, specific_name):
     if not genai_available:
@@ -237,11 +229,11 @@ def main():
         
         detection_mode = st.selectbox(
             "Choose detection method:",
-            ("Gemini AI (Detailed Analysis)", "TensorFlow (Object Recognition)", "OpenCV (Edge Detection)", "All Methods")
+            ("Gemini AI (Detailed Analysis)", "OpenCV Analysis", "All Methods")
         )
         
         st.header("About")
-        st.write("This tool uses multiple AI approaches to identify various objects from images.")
+        st.write("This tool uses AI and computer vision to identify various objects from images.")
         
         st.header("Instructions")
         st.write("1. Choose detection method")
@@ -256,12 +248,8 @@ def main():
         else:
             st.error("✗ Gemini API Not Available")
             
-        if tf_model is not None:
-            st.success("✓ TensorFlow Model Loaded")
-        else:
-            st.warning("⚠ TensorFlow Model Not Available")
-            
         st.success("✓ OpenCV Available")
+        st.success("✓ Color Analysis Available")
     
     # Input selection
     input_method = st.radio("Choose input method:", ("Upload Image", "Use Camera"))
@@ -292,14 +280,8 @@ def main():
                         st.markdown(gemini_result)
                         results["gemini"] = gemini_result
                 
-                if detection_mode in ["TensorFlow (Object Recognition)", "All Methods"] and tf_model is not None:
-                    with st.expander("TensorFlow Object Recognition", expanded=detection_mode != "All Methods"):
-                        tf_result = identify_object_tensorflow(image)
-                        st.markdown(tf_result)
-                        results["tensorflow"] = tf_result
-                
-                if detection_mode in ["OpenCV (Edge Detection)", "All Methods"]:
-                    with st.expander("OpenCV Analysis", expanded=detection_mode != "All Methods"):
+                if detection_mode in ["OpenCV Analysis", "All Methods"]:
+                    with st.expander("Computer Vision Analysis", expanded=detection_mode != "All Methods"):
                         edge_result, edge_image = detect_edges_opencv(image)
                         st.markdown(edge_result)
                         
@@ -319,11 +301,16 @@ def main():
                         # Color analysis
                         color_result = detect_dominant_colors(image)
                         st.markdown(color_result)
+                        
+                        # Simple color recognition
+                        color_recognition = simple_color_recognition(image)
+                        st.markdown(color_recognition)
+                        
                         results["opencv"] = edge_result
                         results["color"] = color_result
                 
                 # Detailed information tab
-                if genai_available and ("gemini" in results or "tensorflow" in results):
+                if genai_available and "gemini" in results:
                     with st.expander("Detailed Information", expanded=True):
                         # Try to extract object info from Gemini results
                         object_info = ""
@@ -333,14 +320,6 @@ def main():
                             object_info = results["gemini"]
                             if "**Specific Identification:**" in results["gemini"]:
                                 specific_name = results["gemini"].split("**Specific Identification:**")[1].split("**Key Characteristics:**")[0].strip()
-                        
-                        # If no Gemini info, try to get from TensorFlow
-                        if not object_info and "tensorflow" in results:
-                            # Get the top prediction from TensorFlow
-                            lines = results["tensorflow"].split('\n')
-                            if len(lines) > 2:
-                                specific_name = lines[1].split('. ')[1].split(' (')[0]
-                                object_info = f"Object detected: {specific_name}"
                         
                         if object_info:
                             st.subheader("Comprehensive Details")
@@ -374,7 +353,6 @@ def main():
         st.info("""
         **Available Detection Methods:**
         - **Gemini AI**: Detailed analysis and information about objects
-        - **TensorFlow**: Fast object recognition with confidence scores
         - **OpenCV**: Edge detection and color analysis
         - **All Methods**: Combine all approaches for comprehensive analysis
         """)
