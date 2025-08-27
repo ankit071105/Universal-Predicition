@@ -1,9 +1,5 @@
 streamlit
-numpy
-scikit-learn
-onnxruntime
-Pillow
-matplotlib
-requests
-tqdm
+python-dotenv
 google-generativeai
+Pillow
+requests
