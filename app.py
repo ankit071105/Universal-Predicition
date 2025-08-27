@@ -20,7 +20,7 @@ st.set_page_config(
 def configure_genai():
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        st.error("Please set GEMINI_API_KEY in your .env file")
+        st.error("Please set")
         st.stop()
     genai.configure(api_key=api_key)
 
